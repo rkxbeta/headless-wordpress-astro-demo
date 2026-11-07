@@ -15,9 +15,10 @@
  * 6. Upload the 8 editorial SVG featured images to the WordPress Media Library and import
  *    the 8 articles with exact titles, slugs, manual excerpts, HTML content, publication dates,
  *    categories, tags, featured images, custom post meta, and ACF field values
- * 7. Export sanitized Free 1.0.0 configuration (`free-endpoints.json`) and, when RKX API Studio Pro
+ * 7. Export sanitized Free 1.0.1 configuration (`free-endpoints.json`) and, when RKX API Studio Pro
  *    is active, configure and export the Pro 1.1.0 endpoints + Dynamic Route Builder configuration
- *    (`pro-endpoints.json`) under custom namespace `rkx/v1`.
+ *    (`pro-endpoints.json`) under the configured Pro custom namespace `rkx/v1` (default namespace is
+ *    `rkx-api-studio/v1`).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

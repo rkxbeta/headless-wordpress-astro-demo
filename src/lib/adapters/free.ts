@@ -310,7 +310,7 @@ export class FreeContentAdapter implements ContentAdapter {
 
       throw new Error(
         `[The Headless Journal - Free Mode] WordPress endpoint "${url.toString()}" returned HTTP ${response.status} ${response.statusText}${bodyDetail}. ` +
-          `Verify that RKX API Studio Free 1.0.0 is active and the "/posts", "/categories", and "/featured" endpoints are configured.`
+          `Verify that RKX API Studio Free is active and the "/posts", "/categories", and "/featured" endpoints are configured under /wp-json/rkx-api-studio/v1.`
       );
     }
 

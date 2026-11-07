@@ -102,8 +102,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             </div>
             <p class="text-stone-600 text-sm mt-2 leading-relaxed">
               Expands capabilities with <strong>RKX API Studio Pro</strong>, unlocking the <strong>Dynamic Route Builder</strong>
-              (<code>/wp-json/rkx/v1/posts/&#123;slug&#125;</code>, <code>/post-ids/&#123;id&#125;</code>, <code>/categories/&#123;slug&#125;</code>),
-              custom REST namespaces, typed ACF field normalization, and server-side Bearer authentication.
+              (<code>/wp-json/rkx/v1/posts/&#123;slug&#125;</code>, <code>/post-ids/&#123;id&#125;</code>, <code>/categories/&#123;slug&#125;</code>)
+              under a configured Pro custom REST namespace (<code>rkx/v1</code>, replacing the default <code>rkx-api-studio/v1</code> namespace),
+              typed ACF field normalization, and server-side Bearer authentication.
             </p>
           </div>
         </div>
@@ -138,12 +139,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>
-          </a>
-          <a
-            href="{{NEW_YOUTUBE_TUTORIAL_URL}}"
-            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border border-stone-300 text-stone-800 hover:bg-stone-100 transition-colors"
-          >
-            <span>Watch Video Tutorial</span>
           </a>
         </div>
 

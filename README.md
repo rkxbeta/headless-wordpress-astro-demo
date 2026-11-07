@@ -28,7 +28,7 @@ All Astro pages and components consume content through the unified adapter inter
 | **Adapter Implementation** | [`src/lib/adapters/mock.ts`](src/lib/adapters/mock.ts) | [`src/lib/adapters/free.ts`](src/lib/adapters/free.ts) | [`src/lib/adapters/pro.ts`](src/lib/adapters/pro.ts) |
 | **WordPress Required?** | No (100% offline JSON) | Yes (`http://localhost:8088`) | Yes (`http://localhost:8088`) |
 | **Required Plugins** | None | RKX API Studio Free | RKX API Studio Free + Pro (+ ACF/SCF for ACF fields) |
-| **REST Namespace** | N/A | Fixed: `rkx-api-studio/v1` | Custom: `rkx/v1` (`RKX_API_NAMESPACE`) |
+| **REST Namespace** | N/A | Default: `rkx-api-studio/v1` | Configured Pro Custom Namespace: `rkx/v1` (`RKX_API_NAMESPACE=rkx/v1`, default is `rkx-api-studio/v1`) |
 | **Collection Endpoints** | Local JSON arrays | `/posts`, `/categories`, `/featured` | `/posts`, `/categories`, `/featured` |
 | **Single-Item Resolution** | In-memory lookup | Collection pagination + local slug lookup | **Dynamic Route Builder** (`/posts/{slug}`, `/post-ids/{id}`, `/categories/{slug}`) |
 | **Custom Fields** | Static JSON properties | Unprotected `meta:*` post meta | **Typed ACF Fields** (`acf:article_subtitle`, `acf:hero_image`, `acf:author_info`, `acf:related_resources`) + `meta:*` |
@@ -135,7 +135,12 @@ CONTENT_MODE=demo npm run build
 
 ### Mode 3: Pro Mode (RKX API Studio Pro + Dynamic Route Builder + ACF)
 
-Pro Mode connects to WordPress with **RKX API Studio Pro** active, using custom REST namespace `rkx/v1`, **Dynamic Route Builder** single-item endpoints, and typed **ACF** field mappings.
+Pro Mode connects to WordPress with **RKX API Studio Pro** active, using a **configured Pro Custom Namespace (`rkx/v1`)**, **Dynamic Route Builder** single-item endpoints, and typed **ACF** field mappings.
+
+> **Namespace Note (`rkx/v1` vs `rkx-api-studio/v1`):**
+> * The built-in default namespace in both Free and Pro (when no custom namespace is selected) is **`rkx-api-studio/v1`**.
+> * In this demo, `wordpress/scripts/seed-wordpress.php` and `wordpress/config/pro-endpoints.json` register **`rkx/v1`** as a Pro Custom Namespace (stored in the WordPress option `rkx_as_pro_namespaces` and assigned per endpoint in `rkx_as_pro_endpoint_data`).
+> * Both namespaces (`rkx-api-studio/v1` for default endpoints and `rkx/v1` for custom-namespace Pro endpoints) work simultaneously on the same WordPress installation. If `rkx/v1` is removed from **RKX API Studio → Settings → API Namespaces**, the Pro endpoints automatically fall back to `/wp-json/rkx-api-studio/v1/...`.
 
 1. Configure `.env` for Pro Mode:
    ```ini
@@ -158,7 +163,7 @@ In **RKX API Studio Pro 1.1.0**, the **Dynamic Route Builder** registers true si
 
 ### Configured Pro Endpoints ([`wordpress/config/pro-endpoints.json`](wordpress/config/pro-endpoints.json))
 
-All Pro endpoints are served under the custom namespace `rkx/v1`:
+All 6 Pro endpoints in `pro-endpoints.json` are assigned to the configured Pro custom namespace `rkx/v1` (if no custom namespace were assigned, they would be served under `/wp-json/rkx-api-studio/v1/...`):
 
 | Public REST Route | Endpoint Slug | Dynamic Route Pattern | Response Shape | Purpose |
 | :--- | :--- | :--- | :--- | :--- |
@@ -178,7 +183,10 @@ All Pro endpoints are served under the custom namespace `rkx/v1`:
   * **Invalid parameter:** Non-positive or non-numeric IDs (`/post-ids/0`, `/post-ids/abc`) or disallowed slug punctuation (`/posts/invalid.slug`) return `HTTP 400 Bad Request` (`rest_invalid_param`).
   * **Unicode slugs:** Percent-encoded and UTF-8 slugs are normalized to lowercase percent-encoded UTF-8 matching WordPress `post_name` storage.
   * **Transient Caching:** Enabled responses return `X-RKX-API-Studio-Cache: MISS` on first resolution and `X-RKX-API-Studio-Cache: HIT` on subsequent requests. `404` responses are never cached.
-  * **Fail-Closed Marker (`rkx_pro:dynamic_route`):** Dynamic endpoints include `"rkx_pro:dynamic_route"` in `fields` so that if Pro is deactivated, Free refuses to serve the single-item configuration as a broad collection leak.
+  * **Fail-Closed Behavior (`HTTP 404` vs `HTTP 501`):**
+    * **Active or Grace Period License:** Pro endpoints and dynamic routes serve `HTTP 200 OK`.
+    * **Expired (past 48h grace) or Revoked License (Pro still active):** Pro does not register dynamic routes (`/posts/{slug}` returns `HTTP 404 rest_no_route`) while continuing to suppress the underlying Free collection slug (`/post-detail` returns `HTTP 404`). Collection endpoints that map Pro ACF fields (`acf:*`) or Pro formatters fall back to `rkx-api-studio/v1` and fail closed with `HTTP 501 Not Implemented` (`rkx_as_unsupported_configuration`).
+    * **Pro Deactivated or Uninstalled (Free running alone):** Free registers every saved GET endpoint under `/wp-json/rkx-api-studio/v1/{slug}`. Because dynamic endpoints store `"rkx_pro:dynamic_route"` in `fields`, Free rejects `/wp-json/rkx-api-studio/v1/post-detail` with `HTTP 501 Not Implemented` (`rkx_as_unsupported_configuration`) so a single-item route never degrades into a collection leak.
 
 ---
 
