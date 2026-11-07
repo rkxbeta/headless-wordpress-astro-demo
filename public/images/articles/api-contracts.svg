@@ -35,7 +35,7 @@
 
   <!-- Main Title -->
   <text x="80" y="240" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" letter-spacing="-0.5">Designing Clean API Responses</text>
-  <text x="80" y="285" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="400">Lean JSON Contracts & Type-Safe Payloads</text>
+  <text x="80" y="285" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="400">Lean JSON Contracts &amp; Type-Safe Payloads</text>
 
   <!-- Center Visual Card / Code Badge -->
   <g transform="translate(80, 360)">

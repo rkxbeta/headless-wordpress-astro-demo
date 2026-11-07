@@ -35,7 +35,7 @@
 
   <!-- Main Title -->
   <text x="80" y="240" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" letter-spacing="-0.5">Custom Fields in Headless WP</text>
-  <text x="80" y="285" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="400">ACF Schema Modeling & Component Mapping</text>
+  <text x="80" y="285" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="400">ACF Schema Modeling &amp; Component Mapping</text>
 
   <!-- Center Visual Card / Code Badge -->
   <g transform="translate(80, 360)">

@@ -180,6 +180,81 @@ function resolveExcerpt(rawExcerpt?: string | null, rawContent?: string | null):
 }
 
 /**
+ * Normalize a WordPress media URL (featured image, ACF image, or author avatar)
+ * so that internal WordPress origins (e.g., `http://localhost:8088/wp-content/uploads/...`)
+ * are rewritten to origin-relative `/wp-content/uploads/...` paths (or `PUBLIC_MEDIA_BASE_URL`
+ * when configured), eliminating HTTP mixed-content errors and hardcoded localhost URLs
+ * on HTTPS frontends (`https://demo.headless-journal.local`).
+ */
+export function normalizeWordPressMediaUrl(
+  rawUrl: string | null | undefined,
+  wpOrigin: string
+): string {
+  const trimmed = (rawUrl ?? '').trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const publicMediaBase = (
+    import.meta.env.PUBLIC_MEDIA_BASE_URL ||
+    (typeof process !== 'undefined' ? process.env.PUBLIC_MEDIA_BASE_URL : undefined) ||
+    ''
+  )
+    .trim()
+    .replace(/\/+$/, '');
+
+  if (trimmed.startsWith('/wp-content/')) {
+    return `${publicMediaBase}${trimmed}`;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      const isWpBackend =
+        parsed.origin === wpOrigin ||
+        parsed.hostname === 'localhost' ||
+        parsed.hostname === '127.0.0.1';
+
+      if (isWpBackend && parsed.pathname.startsWith('/wp-content/')) {
+        return `${publicMediaBase}${parsed.pathname}${parsed.search}`;
+      }
+    } catch {
+      // Keep original string if URL parsing fails
+    }
+    return trimmed;
+  }
+
+  return trimmed;
+}
+
+/**
+ * Rewrite any embedded WordPress `/wp-content/...` URLs inside post HTML content
+ * so images embedded in article bodies also load through the HTTPS frontend origin
+ * without mixed-content errors or hardcoded `localhost` origins.
+ */
+export function normalizeContentMediaUrls(htmlContent: string, wpOrigin: string): string {
+  if (!htmlContent) {
+    return '';
+  }
+
+  const publicMediaBase = (
+    import.meta.env.PUBLIC_MEDIA_BASE_URL ||
+    (typeof process !== 'undefined' ? process.env.PUBLIC_MEDIA_BASE_URL : undefined) ||
+    ''
+  )
+    .trim()
+    .replace(/\/+$/, '');
+
+  const escapedWpOrigin = wpOrigin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const wpOriginPattern = new RegExp(`${escapedWpOrigin}(/wp-content/[^"'\\s)>]+)`, 'gi');
+  const localhostPattern = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(\/wp-content\/[^"'\s)>]+)/gi;
+
+  return htmlContent
+    .replace(wpOriginPattern, `${publicMediaBase}$1`)
+    .replace(localhostPattern, `${publicMediaBase}$1`);
+}
+
+/**
  * Normalize WordPress featured image URLs.
  * Supports full HTTP(S) URLs from WordPress Media Library, relative WordPress paths,
  * and fallback editorial illustrations when a post has no featured image.
@@ -189,15 +264,9 @@ function resolveFeaturedImageUrl(
   slug: string,
   wpOrigin: string
 ): string {
-  const trimmed = (rawUrl ?? '').trim();
-  if (trimmed.length > 0) {
-    if (/^https?:\/\//i.test(trimmed)) {
-      return trimmed;
-    }
-    if (trimmed.startsWith('/wp-content/')) {
-      return `${wpOrigin}${trimmed}`;
-    }
-    return trimmed;
+  const normalized = normalizeWordPressMediaUrl(rawUrl, wpOrigin);
+  if (normalized.length > 0) {
+    return normalized;
   }
 
   return FALLBACK_ARTICLE_IMAGES[slug] || '/images/og-default.svg';
@@ -261,6 +330,8 @@ export class FreeContentAdapter implements ContentAdapter {
   private categoriesCache: Category[] | null = null;
   private featuredCache: Article | null | undefined = undefined;
   private initPromise: Promise<void> | null = null;
+  private cacheTimestamp = 0;
+  private static readonly CACHE_TTL_MS = 5000;
 
   /**
    * Perform a server-side HTTP GET request against an RKX API Studio Free endpoint.
@@ -383,7 +454,7 @@ export class FreeContentAdapter implements ContentAdapter {
   ): Article {
     const slug = String(raw.slug || `post-${raw.id}`);
     const title = decodeHtmlEntities(String(raw.title || 'Untitled Article'));
-    const content = String(raw.content || '');
+    const content = normalizeContentMediaUrls(String(raw.content || ''), wpOrigin);
     const excerpt = resolveExcerpt(raw.excerpt, content);
     const publishedAt = normalizeWordPressDate(raw.date);
     const readingTime = computeReadingTime(content, raw.reading_time);
@@ -430,11 +501,13 @@ export class FreeContentAdapter implements ContentAdapter {
     const authorBio = raw.author_bio
       ? decodeHtmlEntities(String(raw.author_bio))
       : fallbackProfile?.bio || 'Staff writer and technical researcher at The Headless Journal.';
-    const authorAvatar =
+    const rawAuthorAvatar =
       (raw.author_avatar && String(raw.author_avatar).trim()) ||
-      fallbackProfile?.avatar ||
       raw.author?.avatar_url ||
+      fallbackProfile?.avatar ||
       '/images/authors/marcus.svg';
+    const authorAvatar =
+      normalizeWordPressMediaUrl(rawAuthorAvatar, wpOrigin) || '/images/authors/marcus.svg';
 
     const author: Author = {
       id: Number(raw.author?.id || 1),
@@ -469,7 +542,13 @@ export class FreeContentAdapter implements ContentAdapter {
    * Initialize and cache all categories, posts, and featured selections for build-time SSG.
    */
   private async ensureInitialized(): Promise<void> {
-    if (this.postsCache && this.categoriesCache && this.featuredCache !== undefined) {
+    const now = Date.now();
+    if (
+      this.postsCache &&
+      this.categoriesCache &&
+      this.featuredCache !== undefined &&
+      now - this.cacheTimestamp < FreeContentAdapter.CACHE_TTL_MS
+    ) {
       return;
     }
 
@@ -532,6 +611,7 @@ export class FreeContentAdapter implements ContentAdapter {
       } else {
         this.featuredCache = mappedPosts.find((p) => p.featured) ?? mappedPosts[0] ?? null;
       }
+      this.cacheTimestamp = Date.now();
     })();
 
     try {

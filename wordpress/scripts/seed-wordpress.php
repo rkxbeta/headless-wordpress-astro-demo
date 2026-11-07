@@ -29,7 +29,99 @@ require_once ABSPATH . 'wp-admin/includes/image.php';
 require_once ABSPATH . 'wp-admin/includes/file.php';
 require_once ABSPATH . 'wp-admin/includes/media.php';
 
-// Allow SVG uploads during seeding
+// Allow SVG uploads during seeding and install permanent mu-plugin for SVG & local avatar support
+$mu_plugins_dir = WP_CONTENT_DIR . '/mu-plugins';
+if ( ! is_dir( $mu_plugins_dir ) ) {
+	wp_mkdir_p( $mu_plugins_dir );
+}
+$mu_plugin_code = <<<'PHP'
+<?php
+/**
+ * Plugin Name: RKX Headless Journal — SVG Media & Local Author Avatar Support
+ * Description: Enables safe SVG rendering in the WordPress Media Library, Block Editor Featured Image panel, and ACF Image fields, and serves local author SVG avatars.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+add_filter(
+	'upload_mimes',
+	function ( $mimes ) {
+		$mimes['svg'] = 'image/svg+xml';
+		return $mimes;
+	}
+);
+
+add_filter(
+	'wp_check_filetype_and_ext',
+	function ( $data, $file, $filename, $mimes ) {
+		if ( is_string( $filename ) && str_ends_with( strtolower( $filename ), '.svg' ) ) {
+			$data['ext']  = 'svg';
+			$data['type'] = 'image/svg+xml';
+		}
+		return $data;
+	},
+	10,
+	4
+);
+
+add_filter(
+	'wp_prepare_attachment_for_js',
+	function ( $response, $attachment ) {
+		if ( isset( $response['mime'] ) && 'image/svg+xml' === $response['mime'] ) {
+			$url               = $response['url'];
+			$width             = ! empty( $response['width'] ) ? (int) $response['width'] : 1200;
+			$height            = ! empty( $response['height'] ) ? (int) $response['height'] : 675;
+			$response['width'] = $width;
+			$response['height'] = $height;
+			$response['icon']  = $url;
+			$size_entry        = array(
+				'url'         => $url,
+				'width'       => $width,
+				'height'      => $height,
+				'orientation' => $width >= $height ? 'landscape' : 'portrait',
+			);
+			$response['sizes'] = array(
+				'full'         => $size_entry,
+				'thumbnail'    => $size_entry,
+				'medium'       => $size_entry,
+				'medium_large' => $size_entry,
+				'large'        => $size_entry,
+			);
+		}
+		return $response;
+	},
+	10,
+	2
+);
+
+add_filter(
+	'get_avatar_url',
+	function ( $url, $id_or_email ) {
+		$user = null;
+		if ( is_numeric( $id_or_email ) ) {
+			$user = get_user_by( 'id', (int) $id_or_email );
+		} elseif ( is_object( $id_or_email ) && ! empty( $id_or_email->user_id ) ) {
+			$user = get_user_by( 'id', (int) $id_or_email->user_id );
+		} elseif ( is_string( $id_or_email ) && is_email( $id_or_email ) ) {
+			$user = get_user_by( 'email', $id_or_email );
+		}
+		if ( $user ) {
+			$uploaded_rel = get_user_meta( $user->ID, 'editorial_avatar_upload', true );
+			if ( is_string( $uploaded_rel ) && '' !== $uploaded_rel ) {
+				$uploads = wp_upload_dir();
+				return trailingslashit( $uploads['baseurl'] ) . ltrim( $uploaded_rel, '/' );
+			}
+		}
+		return $url;
+	},
+	10,
+	2
+);
+PHP;
+file_put_contents( $mu_plugins_dir . '/rkx-svg-media-support.php', $mu_plugin_code . "\n" );
+
 add_filter(
 	'upload_mimes',
 	function ( $mimes ) {
@@ -111,7 +203,8 @@ $authors_data = array(
 	),
 );
 
-$author_ids = array();
+$author_ids  = array();
+$upload_info = wp_upload_dir();
 foreach ( $authors_data as $slug => $adata ) {
 	$existing_user = get_user_by( 'login', $adata['user_login'] );
 	if ( $existing_user ) {
@@ -143,6 +236,17 @@ foreach ( $authors_data as $slug => $adata ) {
 	}
 	update_user_meta( $user_id, 'editorial_role', $adata['job_role'] );
 	update_user_meta( $user_id, 'editorial_avatar', $adata['avatar'] );
+
+	// Copy author SVG avatar into WordPress uploads so get_avatar_url() serves a local SVG
+	$author_svg_basename = 'author-' . basename( $adata['avatar'] );
+	$author_svg_source   = '/tmp/seed-data/' . $author_svg_basename;
+	if ( file_exists( $author_svg_source ) ) {
+		$author_svg_target = $upload_info['path'] . '/' . $author_svg_basename;
+		copy( $author_svg_source, $author_svg_target );
+		$rel_author_upload = ltrim( $upload_info['subdir'] . '/' . $author_svg_basename, '/' );
+		update_user_meta( $user_id, 'editorial_avatar_upload', $rel_author_upload );
+	}
+
 	$author_ids[ $adata['display_name'] ] = $user_id;
 	echo "Author ready: {$adata['display_name']} (ID: {$user_id})\n";
 }
@@ -391,12 +495,29 @@ foreach ( $posts_raw as $article ) {
 		}
 
 		update_post_meta( $attach_id, '_wp_attachment_image_alt', $article['featuredImageAlt'] ?? $article['title'] );
+		$svg_filesize = (int) filesize( $target_path );
+		$svg_subsize  = array(
+			'file'      => $filename,
+			'width'     => 1200,
+			'height'    => 675,
+			'mime-type' => 'image/svg+xml',
+			'filesize'  => $svg_filesize,
+		);
 		wp_update_attachment_metadata(
 			$attach_id,
 			array(
-				'width'  => 1200,
-				'height' => 675,
-				'file'   => ltrim( $upload_dir['subdir'] . '/' . $filename, '/' ),
+				'width'    => 1200,
+				'height'   => 675,
+				'file'     => ltrim( $upload_dir['subdir'] . '/' . $filename, '/' ),
+				'filesize' => $svg_filesize,
+				'sizes'    => array(
+					'thumbnail'    => $svg_subsize,
+					'medium'       => $svg_subsize,
+					'medium_large' => $svg_subsize,
+					'large'        => $svg_subsize,
+					'1536x1536'    => $svg_subsize,
+					'2048x2048'    => $svg_subsize,
+				),
 			)
 		);
 		$attach_by_slug[ $slug ] = $attach_id;

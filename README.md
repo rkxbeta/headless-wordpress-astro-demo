@@ -229,7 +229,24 @@ Both [`wordpress/config/free-endpoints.json`](wordpress/config/free-endpoints.js
 
 ---
 
-## 9. Verification Commands
+## 9. Local HTTPS & Media Proxy Setup (`https://demo.headless-journal.local/`)
+
+For local HTTPS development on macOS:
+
+1. **TLS Certificate (`mkcert`):**
+   * The local leaf certificate (`/Users/kyguney/Project-Datas/Rkxdesign/rkxbeta/.local/tls/local.pem`) is generated via `mkcert` (`make certs-renew` in `rkxbeta`) and includes Subject Alternative Names for `rkxbeta.dev`, `admin.rkxbeta.dev`, and `demo.headless-journal.local`, signed by the macOS-trusted `mkcert` root CA.
+2. **Reverse Proxy & HTTPS Media Delivery:**
+   * The existing local Caddy reverse proxy (`rkxbeta-local-caddy-1` on `127.0.0.1:80` and `127.0.0.1:443`) terminates TLS for `https://demo.headless-journal.local`:
+     * Requests to `/wp-content/*` are proxied to `host.docker.internal:8088` (the isolated WordPress container), serving all WordPress Media Library uploads over trusted HTTPS without mixed-content warnings or hardcoded `http://localhost:8088` URLs.
+     * All other requests are proxied to `host.docker.internal:4321` (the Astro server).
+   * `astro.config.mjs` also configures Vite `server.proxy` and `preview.proxy` for `/wp-content` to `http://localhost:8088` and allowlists `demo.headless-journal.local`.
+3. **Persistent Reboot Survival (`LaunchAgents`):**
+   * `~/Library/LaunchAgents/local.headless-journal.mdns.plist` advertises `demo.headless-journal.local -> 127.0.0.1` via macOS `dns-sd -P` (`RunAtLoad` + `KeepAlive`). You may also optionally add `127.0.0.1 demo.headless-journal.local` to `/etc/hosts`.
+   * `~/Library/LaunchAgents/local.headless-journal.astro.plist` runs the Astro server on `127.0.0.1:4321` (`RunAtLoad` + `KeepAlive`).
+
+---
+
+## 10. Verification Commands
 
 ```bash
 # 1. TypeScript & Astro type check across all adapters and templates
@@ -243,11 +260,15 @@ CONTENT_MODE=free WORDPRESS_API_URL=http://localhost:8088 npm run build
 
 # 4. Pro Mode production build (requires local Docker WordPress + Pro on port 8088)
 CONTENT_MODE=pro WORDPRESS_API_URL=http://localhost:8088 RKX_API_NAMESPACE=rkx/v1 npm run build
+
+# 5. Verify local HTTPS and WordPress media delivery (with strict TLS verification)
+curl -I https://demo.headless-journal.local/
+curl -I https://demo.headless-journal.local/wp-content/uploads/2026/11/maintainable-apis.svg
 ```
 
 ---
 
-## 10. Attribution & License
+## 11. Attribution & License
 
 * Built with [Astro](https://astro.build) and [RKX API Studio](https://rkxbeta.com).
 * Released under the **MIT Open Source License**.

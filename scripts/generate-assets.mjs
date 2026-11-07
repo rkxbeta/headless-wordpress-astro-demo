@@ -3,6 +3,15 @@ import path from 'node:path';
 
 const outDir = '/Users/kyguney/Project-Datas/Rkxdesign/headless-wordpress-astro-demo/public/images';
 
+function escapeXml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 // 1. Author Avatars
 const authors = [
   { file: 'authors/marcus.svg', name: 'MV', title: 'Marcus Vance', bg: '#1e293b', fg: '#f8fafc', accent: '#3b82f6' },
@@ -142,12 +151,12 @@ articles.forEach(({ file, title, subtitle, tag, color1, color2, accent, symbol }
   <!-- Category Badge -->
   <g transform="translate(80, 140)">
     <rect width="150" height="28" rx="4" fill="${accent}" fill-opacity="0.15" stroke="${accent}" stroke-opacity="0.4" stroke-width="1" />
-    <text x="75" y="18" fill="${accent}" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1.5">${tag}</text>
+    <text x="75" y="18" fill="${accent}" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1.5">${escapeXml(tag)}</text>
   </g>
 
   <!-- Main Title -->
-  <text x="80" y="240" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" letter-spacing="-0.5">${title}</text>
-  <text x="80" y="285" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="400">${subtitle}</text>
+  <text x="80" y="240" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" letter-spacing="-0.5">${escapeXml(title)}</text>
+  <text x="80" y="285" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="400">${escapeXml(subtitle)}</text>
 
   <!-- Center Visual Card / Code Badge -->
   <g transform="translate(80, 360)">
@@ -162,7 +171,7 @@ articles.forEach(({ file, title, subtitle, tag, color1, color2, accent, symbol }
     <line x1="0" y1="44" x2="1040" y2="44" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
 
     <!-- Code / Architecture Symbol text -->
-    <text x="40" y="115" fill="${accent}" font-family="ui-monospace, monospace" font-size="26" font-weight="600" letter-spacing="0.5">${symbol}</text>
+    <text x="40" y="115" fill="${accent}" font-family="ui-monospace, monospace" font-size="26" font-weight="600" letter-spacing="0.5">${escapeXml(symbol)}</text>
     <text x="40" y="150" fill="#64748b" font-family="ui-monospace, monospace" font-size="14">// Powered by RKX API Studio • High-Performance Astro Frontend</text>
   </g>
 </svg>`;

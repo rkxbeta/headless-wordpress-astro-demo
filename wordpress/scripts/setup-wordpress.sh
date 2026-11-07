@@ -50,6 +50,9 @@ docker cp src/data/posts.json "$(docker compose ps -q rkx-hj-wordpress):/tmp/see
 for svg_file in public/images/articles/*.svg; do
   docker cp "${svg_file}" "$(docker compose ps -q rkx-hj-wordpress):/tmp/seed-data/"
 done
+for author_svg in public/images/authors/*.svg; do
+  docker cp "${author_svg}" "$(docker compose ps -q rkx-hj-wordpress):/tmp/seed-data/author-$(basename "${author_svg}")"
+done
 docker cp wordpress/scripts/seed-wordpress.php "$(docker compose ps -q rkx-hj-wordpress):/tmp/seed-data/seed-wordpress.php"
 
 docker compose exec -T rkx-hj-wordpress wp eval-file /tmp/seed-data/seed-wordpress.php --allow-root

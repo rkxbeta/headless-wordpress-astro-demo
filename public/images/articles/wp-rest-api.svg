@@ -35,7 +35,7 @@
 
   <!-- Main Title -->
   <text x="80" y="240" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="800" letter-spacing="-0.5">Understanding WordPress REST API</text>
-  <text x="80" y="285" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="400">Endpoints, Taxonomies & Embedded Relations</text>
+  <text x="80" y="285" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="400">Endpoints, Taxonomies &amp; Embedded Relations</text>
 
   <!-- Center Visual Card / Code Badge -->
   <g transform="translate(80, 360)">

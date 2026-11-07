@@ -7,7 +7,11 @@ import type {
   ContentAdapter,
   PaginationResult,
 } from '../types';
-import { normalizeWordPressDate } from './free';
+import {
+  normalizeContentMediaUrls,
+  normalizeWordPressDate,
+  normalizeWordPressMediaUrl,
+} from './free';
 
 /**
  * Typed ACF `hero_image` response shape formatted by RKX API Studio Pro (`rkx_as_format_acf_value`).
@@ -197,15 +201,9 @@ function resolveFeaturedImageUrl(
   slug: string,
   wpOrigin: string
 ): string {
-  const trimmed = (rawUrl ?? '').trim();
-  if (trimmed.length > 0) {
-    if (/^https?:\/\//i.test(trimmed)) {
-      return trimmed;
-    }
-    if (trimmed.startsWith('/wp-content/')) {
-      return `${wpOrigin}${trimmed}`;
-    }
-    return trimmed;
+  const normalized = normalizeWordPressMediaUrl(rawUrl, wpOrigin);
+  if (normalized.length > 0) {
+    return normalized;
   }
 
   return FALLBACK_ARTICLE_IMAGES[slug] || '/images/og-default.svg';
@@ -290,12 +288,11 @@ function normalizeAcfHeroImage(
     return undefined;
   }
 
-  const rawUrl = (rawHeroImage.url ?? '').trim();
-  if (!rawUrl) {
+  const url = normalizeWordPressMediaUrl(rawHeroImage.url, wpOrigin);
+  if (!url) {
     return undefined;
   }
 
-  const url = rawUrl.startsWith('/wp-content/') ? `${wpOrigin}${rawUrl}` : rawUrl;
   return {
     url,
     alt: decodeHtmlEntities(String(rawHeroImage.alt ?? '')),
@@ -333,6 +330,8 @@ export class ProContentAdapter implements ContentAdapter {
   private categoriesBySlugCache = new Map<string, Category>();
   private featuredCache: Article | null | undefined = undefined;
   private initPromise: Promise<void> | null = null;
+  private cacheTimestamp = 0;
+  private static readonly CACHE_TTL_MS = 5000;
 
   /**
    * Build server-side request headers, supporting Bearer token authentication
@@ -572,7 +571,7 @@ export class ProContentAdapter implements ContentAdapter {
   ): Article {
     const slug = String(raw.slug || `post-${raw.id}`);
     const title = decodeHtmlEntities(String(raw.title || 'Untitled Article'));
-    const content = String(raw.content || '');
+    const content = normalizeContentMediaUrls(String(raw.content || ''), wpOrigin);
     const excerpt = resolveExcerpt(raw.excerpt, content);
     const publishedAt = normalizeWordPressDate(raw.date);
     const readingTime = computeReadingTime(content, raw.reading_time);
@@ -643,12 +642,14 @@ export class ProContentAdapter implements ContentAdapter {
         fallbackProfile?.bio ||
         'Staff writer and technical researcher at The Headless Journal.'
     );
-    const authorAvatar =
+    const rawAuthorAvatar =
       (acfAuthor?.avatar && String(acfAuthor.avatar).trim()) ||
       (raw.author_avatar && String(raw.author_avatar).trim()) ||
-      fallbackProfile?.avatar ||
       raw.author?.avatar_url ||
+      fallbackProfile?.avatar ||
       '/images/authors/marcus.svg';
+    const authorAvatar =
+      normalizeWordPressMediaUrl(rawAuthorAvatar, wpOrigin) || '/images/authors/marcus.svg';
     const authorGithub =
       (acfAuthor?.github && String(acfAuthor.github).trim()) || fallbackProfile?.github;
 
@@ -691,7 +692,13 @@ export class ProContentAdapter implements ContentAdapter {
    * for build-time static site generation.
    */
   private async ensureInitialized(): Promise<void> {
-    if (this.postsCache && this.categoriesCache && this.featuredCache !== undefined) {
+    const now = Date.now();
+    if (
+      this.postsCache &&
+      this.categoriesCache &&
+      this.featuredCache !== undefined &&
+      now - this.cacheTimestamp < ProContentAdapter.CACHE_TTL_MS
+    ) {
       return;
     }
 
@@ -783,6 +790,7 @@ export class ProContentAdapter implements ContentAdapter {
       } else {
         this.featuredCache = sortedPosts.find((p) => p.featured) ?? sortedPosts[0] ?? null;
       }
+      this.cacheTimestamp = Date.now();
     })();
 
     try {
