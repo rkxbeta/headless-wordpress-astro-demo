@@ -9,11 +9,15 @@ An open-source reference implementation of a decoupled, editorial-style technolo
 ## 1. Project Overview
 
 * **Release Version:** `1.0.0`
-* **Product:** RKX API Studio (Free `1.0.1` & Pro `1.1.0`)
+* **Product:** RKX API Studio Free & Pro. This demo was built and verified with **Free 1.0.1** and **Pro 1.1.0**, which are **not released yet**. Until they are:
+  * **Demo mode** needs no plugins.
+  * **Free mode** works with **RKX API Studio Free 1.0.0** from [WordPress.org](https://wordpress.org/plugins/rkx-api-studio/) (its collection endpoints use only Free 1.0.0 features).
+  * **Pro mode** needs **RKX API Studio Pro 1.1.0** (Dynamic Route Builder), which is not available yet.
 * **Company:** [RKXBeta](https://rkxbeta.com)
 * **Repository:** `rkxbeta/headless-wordpress-astro-demo`
 * **Supported Modes:** `demo` | `free` | `pro`
-* **Video Tutorial:** [Watch the Full Setup & Pro Dynamic Route Builder Tutorial]({{NEW_YOUTUBE_TUTORIAL_URL}})
+* **Video Tutorial:** coming soon. The link will be added here once the tutorial is published.
+<!-- Maintainers: replace the line above with the published YouTube URL before announcing the repository. -->
 
 **The Headless Journal** demonstrates how editorial teams can retain WordPress as their authoring CMS while liberating frontend engineers to deliver zero-runtime JavaScript, sub-100ms TTFB static websites with Astro.
 
@@ -114,9 +118,13 @@ CONTENT_MODE=demo npm run build
 
 ### Mode 2: Free Mode (WordPress + RKX API Studio Free)
 
-1. Start the isolated Docker Compose environment (`rkx-headless-journal-wp` on `http://localhost:8088`) and seed the 8 articles, categories, tags, media library SVG illustrations, and Free endpoints:
+1. Start the isolated Docker Compose environment (`rkx-headless-journal-wp` on `http://localhost:8088`) and seed the 8 articles, categories, tags, media library SVG illustrations, and endpoints:
    ```bash
    ./wordpress/scripts/setup-wordpress.sh
+   ```
+   The setup script installs **RKX API Studio Free from WordPress.org** (currently 1.0.0) and **Secure Custom Fields**. It does not install Pro. If Pro is **not** active, it seeds the Free endpoints. If Pro **is** active, it seeds the Pro endpoints instead; switch them to Free mode first:
+   ```bash
+   ./wordpress/scripts/switch-endpoint-mode.sh free
    ```
 2. Configure `.env` for Free Mode:
    ```ini
@@ -140,9 +148,14 @@ Pro Mode connects to WordPress with **RKX API Studio Pro** active, using a **con
 > **Namespace Note (`rkx/v1` vs `rkx-api-studio/v1`):**
 > * The built-in default namespace in both Free and Pro (when no custom namespace is selected) is **`rkx-api-studio/v1`**.
 > * In this demo, `wordpress/scripts/seed-wordpress.php` and `wordpress/config/pro-endpoints.json` register **`rkx/v1`** as a Pro Custom Namespace (stored in the WordPress option `rkx_as_pro_namespaces` and assigned per endpoint in `rkx_as_pro_endpoint_data`).
-> * Both namespaces (`rkx-api-studio/v1` for default endpoints and `rkx/v1` for custom-namespace Pro endpoints) work simultaneously on the same WordPress installation. If `rkx/v1` is removed from **RKX API Studio → Settings → API Namespaces**, the Pro endpoints automatically fall back to `/wp-json/rkx-api-studio/v1/...`.
+> * Endpoint slugs are unique per HTTP method across namespaces. The `posts`, `categories` and `featured` endpoints are therefore served **either** under `rkx-api-studio/v1` (Free mode) **or** under `rkx/v1` (Pro mode), not both at the same time. Switch between them with `./wordpress/scripts/switch-endpoint-mode.sh free|pro`. It applies `free-endpoints.json` or `pro-endpoints.json` to those three endpoints through the plugin's REST API and leaves the single-item endpoints and all other settings unchanged.
+> * If `rkx/v1` is removed from **RKX API Studio → Settings → API Namespaces**, the Pro endpoints fall back to `/wp-json/rkx-api-studio/v1/...`.
 
-1. Configure `.env` for Pro Mode:
+1. Install and activate **RKX API Studio Pro 1.1.0** with an active license (not released yet; see the overview), then make sure the collection endpoints are in Pro mode:
+   ```bash
+   ./wordpress/scripts/switch-endpoint-mode.sh pro
+   ```
+2. Configure `.env` for Pro Mode:
    ```ini
    CONTENT_MODE=pro
    WORDPRESS_API_URL=http://localhost:8088
@@ -150,7 +163,7 @@ Pro Mode connects to WordPress with **RKX API Studio Pro** active, using a **con
    # Optional server-side Bearer API key for protected Pro endpoints:
    # RKX_API_KEY=your-named-pro-api-key
    ```
-2. Run the production build or dev server:
+3. Run the production build or dev server:
    ```bash
    CONTENT_MODE=pro WORDPRESS_API_URL=http://localhost:8088 RKX_API_NAMESPACE=rkx/v1 npm run build
    ```
@@ -185,7 +198,7 @@ All 6 Pro endpoints in `pro-endpoints.json` are assigned to the configured Pro c
   * **Transient Caching:** Enabled responses return `X-RKX-API-Studio-Cache: MISS` on first resolution and `X-RKX-API-Studio-Cache: HIT` on subsequent requests. `404` responses are never cached.
   * **Fail-Closed Behavior (`HTTP 404` vs `HTTP 501`):**
     * **Active or Grace Period License:** Pro endpoints and dynamic routes serve `HTTP 200 OK`.
-    * **Expired (past 48h grace) or Revoked License (Pro still active):** Pro does not register dynamic routes (`/posts/{slug}` returns `HTTP 404 rest_no_route`) while continuing to suppress the underlying Free collection slug (`/post-detail` returns `HTTP 404`). Collection endpoints that map Pro ACF fields (`acf:*`) or Pro formatters fall back to `rkx-api-studio/v1` and fail closed with `HTTP 501 Not Implemented` (`rkx_as_unsupported_configuration`).
+    * **Expired (after any grace period) or Revoked License (Pro still active):** Pro does not register dynamic routes (`/posts/{slug}` returns `HTTP 404 rest_no_route`) while continuing to suppress the underlying Free collection slug (`/post-detail` returns `HTTP 404`). Collection endpoints that map Pro ACF fields (`acf:*`) or Pro formatters fall back to `rkx-api-studio/v1` and fail closed with `HTTP 501 Not Implemented` (`rkx_as_unsupported_configuration`).
     * **Pro Deactivated or Uninstalled (Free running alone):** Free registers every saved GET endpoint under `/wp-json/rkx-api-studio/v1/{slug}`. Because dynamic endpoints store `"rkx_pro:dynamic_route"` in `fields`, Free rejects `/wp-json/rkx-api-studio/v1/post-detail` with `HTTP 501 Not Implemented` (`rkx_as_unsupported_configuration`) so a single-item route never degrades into a collection leak.
 
 ---
@@ -211,8 +224,8 @@ Both [`wordpress/config/free-endpoints.json`](wordpress/config/free-endpoints.js
 
 ### Prerequisites When Importing `pro-endpoints.json` on Another Site
 1. **Plugins Required:**
-   * **RKX API Studio Free** (1.0.1+)
-   * **RKX API Studio Pro** (1.1.0+ with an active Pro entitlement)
+   * **RKX API Studio Free** (1.0.1+ recommended; 1.0.0 works with Pro 1.1.0)
+   * **RKX API Studio Pro** (1.1.0+ with an active Pro entitlement; not released yet)
    * **Advanced Custom Fields (ACF)** or **Secure Custom Fields (SCF)** with the `Editorial Article Metadata` field group (`article_subtitle`, `hero_image`, `author_info`, `related_resources`).
 2. **Custom Namespace (`rkx/v1`):**
    * The importer automatically registers custom namespaces included in imported endpoints, or you can add `rkx/v1` under **RKX API Studio → Settings → API Namespaces**.
@@ -229,20 +242,13 @@ Both [`wordpress/config/free-endpoints.json`](wordpress/config/free-endpoints.js
 
 ---
 
-## 9. Local HTTPS & Media Proxy Setup (`https://demo.headless-journal.local/`)
+## 9. Optional: Local HTTPS & Media Proxy
 
-For local HTTPS development on macOS:
+The site works over plain HTTP (`http://localhost:4321` for Astro, `http://localhost:8088` for WordPress). If you serve it over local HTTPS, for example `https://demo.headless-journal.local` with a locally trusted certificate (such as one from `mkcert`) behind a reverse proxy:
 
-1. **TLS Certificate (`mkcert`):**
-   * The local leaf certificate (`/Users/kyguney/Project-Datas/Rkxdesign/rkxbeta/.local/tls/local.pem`) is generated via `mkcert` (`make certs-renew` in `rkxbeta`) and includes Subject Alternative Names for `rkxbeta.dev`, `admin.rkxbeta.dev`, and `demo.headless-journal.local`, signed by the macOS-trusted `mkcert` root CA.
-2. **Reverse Proxy & HTTPS Media Delivery:**
-   * The existing local Caddy reverse proxy (`rkxbeta-local-caddy-1` on `127.0.0.1:80` and `127.0.0.1:443`) terminates TLS for `https://demo.headless-journal.local`:
-     * Requests to `/wp-content/*` are proxied to `host.docker.internal:8088` (the isolated WordPress container), serving all WordPress Media Library uploads over trusted HTTPS without mixed-content warnings or hardcoded `http://localhost:8088` URLs.
-     * All other requests are proxied to `host.docker.internal:4321` (the Astro server).
-   * `astro.config.mjs` also configures Vite `server.proxy` and `preview.proxy` for `/wp-content` to `http://localhost:8088` and allowlists `demo.headless-journal.local`.
-3. **Persistent Reboot Survival (`LaunchAgents`):**
-   * `~/Library/LaunchAgents/local.headless-journal.mdns.plist` advertises `demo.headless-journal.local -> 127.0.0.1` via macOS `dns-sd -P` (`RunAtLoad` + `KeepAlive`). You may also optionally add `127.0.0.1 demo.headless-journal.local` to `/etc/hosts`.
-   * `~/Library/LaunchAgents/local.headless-journal.astro.plist` runs the Astro server on `127.0.0.1:4321` (`RunAtLoad` + `KeepAlive`).
+* Proxy `/wp-content/*` to the WordPress container (`localhost:8088`) so Media Library files load over HTTPS without mixed-content warnings, and proxy everything else to the Astro server (`localhost:4321`).
+* `astro.config.mjs` already proxies `/wp-content` to `http://localhost:8088` in `astro dev` and `astro preview`, and allowlists `demo.headless-journal.local`.
+* Set `PUBLIC_MEDIA_BASE_URL` in `.env` if media should come from another origin.
 
 ---
 
@@ -256,12 +262,14 @@ npm run check
 CONTENT_MODE=demo npm run build
 
 # 3. Free Mode production build (requires local Docker WordPress on port 8088)
+./wordpress/scripts/switch-endpoint-mode.sh free
 CONTENT_MODE=free WORDPRESS_API_URL=http://localhost:8088 npm run build
 
 # 4. Pro Mode production build (requires local Docker WordPress + Pro on port 8088)
+./wordpress/scripts/switch-endpoint-mode.sh pro
 CONTENT_MODE=pro WORDPRESS_API_URL=http://localhost:8088 RKX_API_NAMESPACE=rkx/v1 npm run build
 
-# 5. Verify local HTTPS and WordPress media delivery (with strict TLS verification)
+# 5. Optional: verify local HTTPS and WordPress media delivery (if configured, see section 9)
 curl -I https://demo.headless-journal.local/
 curl -I https://demo.headless-journal.local/wp-content/uploads/2026/11/maintainable-apis.svg
 ```
