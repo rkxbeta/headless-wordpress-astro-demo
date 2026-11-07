@@ -1,0 +1,245 @@
+# The Headless Journal
+
+> **“Modern publishing, powered by WordPress and Astro.”**
+
+An open-source reference implementation of a decoupled, editorial-style technology publication. Built with **Astro**, **TypeScript**, and **Tailwind CSS 4**, featuring a three-tier content architecture (**Demo Mode**, **Free Mode**, and **Pro Mode**) powered by **RKX API Studio Free & Pro**.
+
+---
+
+## 1. Project Overview
+
+* **Release Version:** `1.0.0`
+* **Product:** RKX API Studio (Free `1.0.1` & Pro `1.1.0`)
+* **Company:** [RKXBeta](https://rkxbeta.com)
+* **Repository:** `rkxbeta/headless-wordpress-astro-demo`
+* **Supported Modes:** `demo` | `free` | `pro`
+* **Video Tutorial:** [Watch the Full Setup & Pro Dynamic Route Builder Tutorial]({{NEW_YOUTUBE_TUTORIAL_URL}})
+
+**The Headless Journal** demonstrates how editorial teams can retain WordPress as their authoring CMS while liberating frontend engineers to deliver zero-runtime JavaScript, sub-100ms TTFB static websites with Astro.
+
+---
+
+## 2. Three-Mode Content Architecture
+
+All Astro pages and components consume content through the unified adapter interface in [`src/lib/content.ts`](src/lib/content.ts). Switching between modes requires only changing `CONTENT_MODE` in `.env` — zero page templates or UI components change across modes, and all three modes generate the exact same 16 public static routes.
+
+| Feature / Capability | Demo Mode (`CONTENT_MODE=demo`) | Free Mode (`CONTENT_MODE=free`) | Pro Mode (`CONTENT_MODE=pro`) |
+| :--- | :--- | :--- | :--- |
+| **Adapter Implementation** | [`src/lib/adapters/mock.ts`](src/lib/adapters/mock.ts) | [`src/lib/adapters/free.ts`](src/lib/adapters/free.ts) | [`src/lib/adapters/pro.ts`](src/lib/adapters/pro.ts) |
+| **WordPress Required?** | No (100% offline JSON) | Yes (`http://localhost:8088`) | Yes (`http://localhost:8088`) |
+| **Required Plugins** | None | RKX API Studio Free | RKX API Studio Free + Pro (+ ACF/SCF for ACF fields) |
+| **REST Namespace** | N/A | Fixed: `rkx-api-studio/v1` | Custom: `rkx/v1` (`RKX_API_NAMESPACE`) |
+| **Collection Endpoints** | Local JSON arrays | `/posts`, `/categories`, `/featured` | `/posts`, `/categories`, `/featured` |
+| **Single-Item Resolution** | In-memory lookup | Collection pagination + local slug lookup | **Dynamic Route Builder** (`/posts/{slug}`, `/post-ids/{id}`, `/categories/{slug}`) |
+| **Custom Fields** | Static JSON properties | Unprotected `meta:*` post meta | **Typed ACF Fields** (`acf:article_subtitle`, `acf:hero_image`, `acf:author_info`, `acf:related_resources`) + `meta:*` |
+| **Authentication** | N/A | Optional `X-RKX-API-Studio-Key` header | Optional server-side `Authorization: Bearer <key>` (named keys supported) |
+| **Endpoint Export File** | `src/data/*.json` | [`wordpress/config/free-endpoints.json`](wordpress/config/free-endpoints.json) | [`wordpress/config/pro-endpoints.json`](wordpress/config/pro-endpoints.json) |
+
+---
+
+## 3. Directory Structure
+
+```text
+headless-wordpress-astro-demo/
+├── .env.example                # Environment template for Demo, Free, and Pro modes
+├── docker-compose.yml          # Isolated local WordPress + MariaDB environment (port 8088)
+├── astro.config.mjs            # Astro configuration with Tailwind v4 & Sitemap integrations
+├── package.json                # Project dependencies and build scripts
+├── tsconfig.json               # TypeScript strict configuration
+│
+├── wordpress/
+│   ├── config/
+│   │   ├── free-endpoints.json # Sanitized RKX API Studio Free v1 endpoint export
+│   │   └── pro-endpoints.json  # Sanitized RKX API Studio Pro v1 endpoint export (Dynamic Routes + ACF)
+│   └── scripts/
+│       ├── setup-wordpress.sh  # Automated Docker + WP-CLI + content & endpoint setup script
+│       └── seed-wordpress.php  # Idempotent content, media, ACF field group, and endpoint seeder
+│
+├── public/
+│   ├── favicon.svg             # SVG brand icon
+│   └── images/
+│       ├── og-default.svg      # High-resolution 1200x630 default Open Graph banner
+│       ├── articles/           # 8 custom 16:9 editorial SVG illustrations
+│       └── authors/            # 3 author SVG avatar badges
+│
+└── src/
+    ├── data/
+    │   ├── categories.json     # 4 editorial taxonomy definitions (Demo Mode & WP seed source)
+    │   └── posts.json          # 8 technical articles (Demo Mode & WP seed source)
+    ├── lib/
+    │   ├── types.ts            # Canonical TypeScript interfaces (Article, Category, Author, ContentAdapter)
+    │   ├── content.ts          # Unified content provider & mode router (demo | free | pro)
+    │   └── adapters/
+    │       ├── mock.ts         # Standalone Demo Mode adapter
+    │       ├── free.ts         # RKX API Studio Free adapter
+    │       └── pro.ts          # RKX API Studio Pro adapter (Dynamic Routes, custom namespace, ACF)
+    ├── components/             # Header, Footer, FeaturedArticle, ArticleCard, Pagination
+    ├── layouts/                # BaseLayout.astro, ArticleLayout.astro
+    ├── pages/                  # index, about, rss.xml.ts, blog/[slug], blog/page/[page], category/[slug]
+    └── styles/
+        └── global.css          # Tailwind CSS v4 import & editorial typography
+```
+
+---
+
+## 4. Reproducible Setup & Running Each Mode
+
+### Prerequisites
+* **Node.js:** v18.17.0+ or v20+
+* **npm:** v9+
+* **Docker & Docker Compose:** Required only for `free` and `pro` modes.
+
+```bash
+# Install frontend dependencies
+npm install
+
+# Copy environment template
+cp .env.example .env
+```
+
+### Mode 1: Demo Mode (Zero Backend Dependencies)
+
+Demo Mode runs immediately from `src/data/posts.json` and `src/data/categories.json` without starting Docker or WordPress:
+
+```bash
+# .env
+CONTENT_MODE=demo
+```
+
+```bash
+npm run dev
+# Or run a production build:
+CONTENT_MODE=demo npm run build
+```
+
+### Mode 2: Free Mode (WordPress + RKX API Studio Free)
+
+1. Start the isolated Docker Compose environment (`rkx-headless-journal-wp` on `http://localhost:8088`) and seed the 8 articles, categories, tags, media library SVG illustrations, and Free endpoints:
+   ```bash
+   ./wordpress/scripts/setup-wordpress.sh
+   ```
+2. Configure `.env` for Free Mode:
+   ```ini
+   CONTENT_MODE=free
+   WORDPRESS_API_URL=http://localhost:8088
+   ```
+3. Build or start the dev server:
+   ```bash
+   CONTENT_MODE=free WORDPRESS_API_URL=http://localhost:8088 npm run build
+   ```
+
+**Configured Free Endpoints ([`wordpress/config/free-endpoints.json`](wordpress/config/free-endpoints.json)):**
+* `GET /wp-json/rkx-api-studio/v1/posts` — Paginated post collection (`per_page: 4`), reading `X-WP-TotalPages` across pages.
+* `GET /wp-json/rkx-api-studio/v1/categories` — Editorial categories (`id`, `slug`, `name`, `description`, `count`).
+* `GET /wp-json/rkx-api-studio/v1/featured` — Lead story filtered by the `featured` tag (`taxonomy_filters: { "post_tag": [5] }`).
+
+### Mode 3: Pro Mode (RKX API Studio Pro + Dynamic Route Builder + ACF)
+
+Pro Mode connects to WordPress with **RKX API Studio Pro** active, using custom REST namespace `rkx/v1`, **Dynamic Route Builder** single-item endpoints, and typed **ACF** field mappings.
+
+1. Configure `.env` for Pro Mode:
+   ```ini
+   CONTENT_MODE=pro
+   WORDPRESS_API_URL=http://localhost:8088
+   RKX_API_NAMESPACE=rkx/v1
+   # Optional server-side Bearer API key for protected Pro endpoints:
+   # RKX_API_KEY=your-named-pro-api-key
+   ```
+2. Run the production build or dev server:
+   ```bash
+   CONTENT_MODE=pro WORDPRESS_API_URL=http://localhost:8088 RKX_API_NAMESPACE=rkx/v1 npm run build
+   ```
+
+---
+
+## 5. Dynamic Route Builder & Pro Endpoints
+
+In **RKX API Studio Pro 1.1.0**, the **Dynamic Route Builder** registers true single-item REST routes that resolve a single published post or taxonomy term by URL parameter (`{slug}` or `{id}`) and return a **single JSON object** (rather than a 1-element array).
+
+### Configured Pro Endpoints ([`wordpress/config/pro-endpoints.json`](wordpress/config/pro-endpoints.json))
+
+All Pro endpoints are served under the custom namespace `rkx/v1`:
+
+| Public REST Route | Endpoint Slug | Dynamic Route Pattern | Response Shape | Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET /wp-json/rkx/v1/posts` | `posts` | `""` *(Collection)* | `Array<Post>` | Paginated article list for static path discovery |
+| `GET /wp-json/rkx/v1/featured` | `featured` | `""` *(Collection)* | `Array<Post>` | Featured lead article (`post_tag: [5]`) |
+| `GET /wp-json/rkx/v1/categories` | `categories` | `""` *(Collection)* | `Array<Category>` | Editorial category collection |
+| `GET /wp-json/rkx/v1/posts/{slug}` | `post-detail` | `posts/{slug}` | `Post` *(Object)* | Single article detail by slug + typed ACF fields |
+| `GET /wp-json/rkx/v1/post-ids/{id}` | `post-by-id` | `post-ids/{id}` | `Post` *(Object)* | Single article detail by numeric WordPress post ID |
+| `GET /wp-json/rkx/v1/categories/{slug}` | `category-detail` | `categories/{slug}` | `Category` *(Object)* | Single category term detail by slug |
+
+### Dynamic Route Builder Rules & Behavior
+* **Route Syntax:** 1 to 3 lowercase path segments (`[a-z0-9-]`) followed by `{slug}` or `{id}` (e.g. `posts/{slug}`, `post-ids/{id}`, `categories/{slug}`).
+* **Conflict Prevention:** Two dynamic routes in the same namespace cannot share the same static base path (`posts/{slug}` and `posts/{id}` conflict because both match `/posts/<segment>`), so ID lookups use a distinct base path (`post-ids/{id}`). A static collection endpoint (`/posts`) and a dynamic single-item endpoint (`/posts/{slug}`) coexist cleanly in the same namespace.
+* **Parameter Validation & Status Codes:**
+  * **Valid slug/ID:** Returns `HTTP 200 OK` with a single JSON object.
+  * **Missing record:** Returns `HTTP 404 Not Found` (`{"code": "rkx_as_not_found", "message": "No matching record was found."}`).
+  * **Invalid parameter:** Non-positive or non-numeric IDs (`/post-ids/0`, `/post-ids/abc`) or disallowed slug punctuation (`/posts/invalid.slug`) return `HTTP 400 Bad Request` (`rest_invalid_param`).
+  * **Unicode slugs:** Percent-encoded and UTF-8 slugs are normalized to lowercase percent-encoded UTF-8 matching WordPress `post_name` storage.
+  * **Transient Caching:** Enabled responses return `X-RKX-API-Studio-Cache: MISS` on first resolution and `X-RKX-API-Studio-Cache: HIT` on subsequent requests. `404` responses are never cached.
+  * **Fail-Closed Marker (`rkx_pro:dynamic_route`):** Dynamic endpoints include `"rkx_pro:dynamic_route"` in `fields` so that if Pro is deactivated, Free refuses to serve the single-item configuration as a broad collection leak.
+
+---
+
+## 6. ACF Integration in Pro Mode
+
+When an ACF-compatible plugin (such as **Secure Custom Fields** / **Advanced Custom Fields**) is active in WordPress, `wordpress/scripts/seed-wordpress.php` registers the **Editorial Article Metadata** field group (`group_rkx_editorial_metadata`) for `post` and populates all 8 articles with four representative fields:
+
+| ACF Field Identifier | Field Type | JSON Output Key | Typed Response Shape |
+| :--- | :--- | :--- | :--- |
+| `acf:article_subtitle` | `text` | `article_subtitle` | `string` |
+| `acf:hero_image` | `image` | `hero_image` | `{ url: string, alt: string, width: number, height: number }` |
+| `acf:author_info` | `group` | `author_info` | `{ name: string, role: string, bio: string, avatar: string, github: string }` |
+| `acf:related_resources` | `relationship` | `related_resources` | `Array<{ id: number, title: string, slug: string }>` |
+
+`ProContentAdapter` ([`src/lib/adapters/pro.ts`](src/lib/adapters/pro.ts)) normalizes these typed ACF fields into the canonical `Article` and `Author` interfaces, and `ArticleLayout.astro` renders Pro-only UI enhancements (the `Pro Dynamic Route` badge, the `ACF Curated Reading Path` block from `acf:related_resources`, and the author's `GitHub Profile` link from `acf:author_info`) only when Pro data is available.
+
+---
+
+## 7. Endpoint Import / Export & Site-Specific Prerequisites
+
+Both [`wordpress/config/free-endpoints.json`](wordpress/config/free-endpoints.json) and [`wordpress/config/pro-endpoints.json`](wordpress/config/pro-endpoints.json) use the official RKX API Studio v1 export schema (`version: 1`, `settings`, `endpoints`) and can be imported directly via **RKX API Studio → Import / Export** in the WordPress Admin UI.
+
+### Prerequisites When Importing `pro-endpoints.json` on Another Site
+1. **Plugins Required:**
+   * **RKX API Studio Free** (1.0.1+)
+   * **RKX API Studio Pro** (1.1.0+ with an active Pro entitlement)
+   * **Advanced Custom Fields (ACF)** or **Secure Custom Fields (SCF)** with the `Editorial Article Metadata` field group (`article_subtitle`, `hero_image`, `author_info`, `related_resources`).
+2. **Custom Namespace (`rkx/v1`):**
+   * The importer automatically registers custom namespaces included in imported endpoints, or you can add `rkx/v1` under **RKX API Studio → Settings → API Namespaces**.
+3. **Site-Specific Taxonomy IDs:**
+   * The `featured` endpoint filters by `taxonomy_filters: { "post_tag": [5] }`, where `5` is the `term_id` of the `featured` tag in the seeded database (`1..4` are the 4 categories). If importing into an existing WordPress database where the `featured` tag has a different `term_id`, update that filter in the endpoint builder.
+
+---
+
+## 8. Licensing & Security Notes
+
+* **No Pro Source Code or Secrets in This Repository:** This public demo repository contains **no** RKX API Studio Pro source code, **no** Pro distribution ZIPs, **no** private SDK code, and **no** license keys or credentials.
+* **Commercial Licensing:** RKX API Studio Pro features (Dynamic Route Builder, custom namespaces, ACF field mapping, named Bearer keys) require an active Pro license in production environments.
+* **Server-Side Authentication Only:** When `RKX_API_KEY` is configured in `.env`, `ProContentAdapter` sends `Authorization: Bearer <RKX_API_KEY>` strictly during server-side Astro static build requests. Credentials are never exposed to browser or client-side code.
+
+---
+
+## 9. Verification Commands
+
+```bash
+# 1. TypeScript & Astro type check across all adapters and templates
+npm run check
+
+# 2. Demo Mode production build
+CONTENT_MODE=demo npm run build
+
+# 3. Free Mode production build (requires local Docker WordPress on port 8088)
+CONTENT_MODE=free WORDPRESS_API_URL=http://localhost:8088 npm run build
+
+# 4. Pro Mode production build (requires local Docker WordPress + Pro on port 8088)
+CONTENT_MODE=pro WORDPRESS_API_URL=http://localhost:8088 RKX_API_NAMESPACE=rkx/v1 npm run build
+```
+
+---
+
+## 10. Attribution & License
+
+* Built with [Astro](https://astro.build) and [RKX API Studio](https://rkxbeta.com).
+* Released under the **MIT Open Source License**.
