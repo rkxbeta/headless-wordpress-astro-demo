@@ -16,8 +16,7 @@ An open-source reference implementation of a decoupled, editorial-style technolo
 * **Company:** [RKXBeta](https://rkxbeta.com)
 * **Repository:** `rkxbeta/headless-wordpress-astro-demo`
 * **Supported Modes:** `demo` | `free` | `pro`
-* **Video Tutorial:** coming soon. The link will be added here once the tutorial is published.
-<!-- Maintainers: replace the line above with the published YouTube URL before announcing the repository. -->
+* **Video Tutorial:** [Build a Headless WordPress Website with Astro (YouTube)](https://www.youtube.com/watch?v=5KA5GXjbE60)
 
 **The Headless Journal** demonstrates how editorial teams can retain WordPress as their authoring CMS while liberating frontend engineers to deliver zero-runtime JavaScript, sub-100ms TTFB static websites with Astro.
 
