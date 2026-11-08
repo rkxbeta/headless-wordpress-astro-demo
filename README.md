@@ -28,7 +28,7 @@ An open-source reference implementation of a decoupled, editorial-style technolo
 * 📖 **Headless Journal Documentation:** [The Headless Journal Guide](https://rkxbeta.com/plugins/rkx-api-studio/docs/headless-journal-demo)
 * 📺 **YouTube Tutorial:** [Build a Headless WordPress Website with Astro (YouTube)](https://www.youtube.com/watch?v=5KA5GXjbE60)
 
-**The Headless Journal** demonstrates how editorial teams can retain WordPress as their authoring CMS while liberating frontend engineers to deliver zero-runtime JavaScript, sub-100ms TTFB static websites with Astro.
+**The Headless Journal** demonstrates how editorial teams can retain WordPress as their authoring CMS while liberating frontend engineers to deliver zero-runtime JavaScript, high-performance edge static websites with Astro.
 
 ---
 
