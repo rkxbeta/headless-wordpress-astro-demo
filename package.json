@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "The Headless Journal - Modern publishing powered by WordPress and Astro",
   "type": "module",
+  "engines": {
+    "node": ">=22.23.4"
+  },
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
