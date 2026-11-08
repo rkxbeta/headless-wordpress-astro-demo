@@ -9,14 +9,23 @@ An open-source reference implementation of a decoupled, editorial-style technolo
 ## 1. Project Overview
 
 * **Release Version:** `1.0.0`
-* **Product:** RKX API Studio Free & Pro. This demo was built and verified with **Free 1.0.1** and **Pro 1.1.0**, which are **not released yet**. Until they are:
-  * **Demo mode** needs no plugins.
-  * **Free mode** works with **RKX API Studio Free 1.0.0** from [WordPress.org](https://wordpress.org/plugins/rkx-api-studio/) (its collection endpoints use only Free 1.0.0 features).
-  * **Pro mode** needs **RKX API Studio Pro 1.1.0** (Dynamic Route Builder), which is not available yet.
+* **Product:** RKX API Studio Free & Pro
+  * **Free 1.0.1:** Released and publicly available on [WordPress.org](https://wordpress.org/plugins/rkx-api-studio/).
+  * **Pro 1.1.0:** In release candidate status (RC3); not publicly available yet.
+* **Mode Compatibility:**
+  * **Demo mode** requires zero backend dependencies or plugins (runs 100% offline from local JSON fixtures).
+  * **Free mode** works with **RKX API Studio Free 1.0.1** (or 1.0.0) from [WordPress.org](https://wordpress.org/plugins/rkx-api-studio/).
+  * **Pro mode** requires **RKX API Studio Pro 1.1.0** (Dynamic Route Builder, custom namespaces, and typed ACF field mapping), which is upcoming.
 * **Company:** [RKXBeta](https://rkxbeta.com)
 * **Repository:** `rkxbeta/headless-wordpress-astro-demo`
 * **Supported Modes:** `demo` | `free` | `pro`
-* **Video Tutorial:** [Build a Headless WordPress Website with Astro (YouTube)](https://www.youtube.com/watch?v=5KA5GXjbE60)
+
+### Quick Links & Resources
+
+* 🔌 **WordPress.org Free Plugin:** [RKX API Studio on WordPress.org](https://wordpress.org/plugins/rkx-api-studio/)
+* 📦 **RKXBeta Product Page:** [RKX API Studio on RKXBeta](https://rkxbeta.com/plugins/rkx-api-studio)
+* 📖 **Headless Journal Documentation:** [The Headless Journal Guide](https://rkxbeta.com/plugins/rkx-api-studio/docs/headless-journal-demo)
+* 📺 **YouTube Tutorial:** [Build a Headless WordPress Website with Astro (YouTube)](https://www.youtube.com/watch?v=5KA5GXjbE60)
 
 **The Headless Journal** demonstrates how editorial teams can retain WordPress as their authoring CMS while liberating frontend engineers to deliver zero-runtime JavaScript, sub-100ms TTFB static websites with Astro.
 
@@ -121,7 +130,7 @@ CONTENT_MODE=demo npm run build
    ```bash
    ./wordpress/scripts/setup-wordpress.sh
    ```
-   The setup script installs **RKX API Studio Free from WordPress.org** (currently 1.0.0) and **Secure Custom Fields**. It does not install Pro. If Pro is **not** active, it seeds the Free endpoints. If Pro **is** active, it seeds the Pro endpoints instead; switch them to Free mode first:
+   The setup script installs **RKX API Studio Free from WordPress.org** and **Secure Custom Fields**. It does not install Pro. If Pro is **not** active, it seeds the Free endpoints. If Pro **is** active, it seeds the Pro endpoints instead; switch them to Free mode first:
    ```bash
    ./wordpress/scripts/switch-endpoint-mode.sh free
    ```
@@ -150,7 +159,7 @@ Pro Mode connects to WordPress with **RKX API Studio Pro** active, using a **con
 > * Endpoint slugs are unique per HTTP method across namespaces. The `posts`, `categories` and `featured` endpoints are therefore served **either** under `rkx-api-studio/v1` (Free mode) **or** under `rkx/v1` (Pro mode), not both at the same time. Switch between them with `./wordpress/scripts/switch-endpoint-mode.sh free|pro`. It applies `free-endpoints.json` or `pro-endpoints.json` to those three endpoints through the plugin's REST API and leaves the single-item endpoints and all other settings unchanged.
 > * If `rkx/v1` is removed from **RKX API Studio → Settings → API Namespaces**, the Pro endpoints fall back to `/wp-json/rkx-api-studio/v1/...`.
 
-1. Install and activate **RKX API Studio Pro 1.1.0** with an active license (not released yet; see the overview), then make sure the collection endpoints are in Pro mode:
+1. Install and activate **RKX API Studio Pro 1.1.0** with an active license (not publicly available yet; see the overview), then make sure the collection endpoints are in Pro mode:
    ```bash
    ./wordpress/scripts/switch-endpoint-mode.sh pro
    ```
@@ -224,7 +233,7 @@ Both [`wordpress/config/free-endpoints.json`](wordpress/config/free-endpoints.js
 ### Prerequisites When Importing `pro-endpoints.json` on Another Site
 1. **Plugins Required:**
    * **RKX API Studio Free** (1.0.1+ recommended; 1.0.0 works with Pro 1.1.0)
-   * **RKX API Studio Pro** (1.1.0+ with an active Pro entitlement; not released yet)
+   * **RKX API Studio Pro** (1.1.0+ with an active Pro entitlement; not publicly available yet)
    * **Advanced Custom Fields (ACF)** or **Secure Custom Fields (SCF)** with the `Editorial Article Metadata` field group (`article_subtitle`, `hero_image`, `author_info`, `related_resources`).
 2. **Custom Namespace (`rkx/v1`):**
    * The importer automatically registers custom namespaces included in imported endpoints, or you can add `rkx/v1` under **RKX API Studio → Settings → API Namespaces**.
@@ -277,5 +286,5 @@ curl -I https://demo.headless-journal.local/wp-content/uploads/2026/11/maintaina
 
 ## 11. Attribution & License
 
-* Built with [Astro](https://astro.build) and [RKX API Studio](https://rkxbeta.com).
+* Built with [Astro](https://astro.build) and [RKX API Studio](https://rkxbeta.com/plugins/rkx-api-studio).
 * Released under the **MIT Open Source License**.
