@@ -22,6 +22,7 @@ An open-source reference implementation of a decoupled, editorial-style technolo
 
 ### Quick Links & Resources
 
+* 🌐 **Live Production Demo:** [https://headless-journal.rkxbeta.com](https://headless-journal.rkxbeta.com)
 * 🔌 **WordPress.org Free Plugin:** [RKX API Studio on WordPress.org](https://wordpress.org/plugins/rkx-api-studio/)
 * 📦 **RKXBeta Product Page:** [RKX API Studio on RKXBeta](https://rkxbeta.com/plugins/rkx-api-studio)
 * 📖 **Headless Journal Documentation:** [The Headless Journal Guide](https://rkxbeta.com/plugins/rkx-api-studio/docs/headless-journal-demo)
@@ -97,7 +98,7 @@ headless-wordpress-astro-demo/
 ## 4. Reproducible Setup & Running Each Mode
 
 ### Prerequisites
-* **Node.js:** v18.17.0+ or v20+
+* **Node.js:** v22.23.4+ (LTS recommended, required by Astro 7)
 * **npm:** v9+
 * **Docker & Docker Compose:** Required only for `free` and `pro` modes.
 
