@@ -4,6 +4,8 @@
 
 An open-source reference implementation of a decoupled, editorial-style technology publication. Built with **Astro**, **TypeScript**, and **Tailwind CSS 4**, featuring a three-tier content architecture (**Demo Mode**, **Free Mode**, and **Pro Mode**) powered by **RKX API Studio Free & Pro**.
 
+[Listed on Astro Themes](https://astro.build/themes/details/the-headless-journal/)
+
 ---
 
 ## 1. Project Overview
